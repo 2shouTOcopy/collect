@@ -13,6 +13,8 @@
 #include "Collect.h"
 #include "PluginService.h"
 #include "../oconfig/configfile.h"
+#include "utils/cJSON.h"
+#include "UserConfigManager.h"
 
 CollectDaemon &CollectDaemon::instance()
 {
@@ -193,11 +195,11 @@ int CollectDaemon::loop()
 
         PluginService::Instance().readAll();
 
-        // 检查是否已经“过期”没睡到指定时间
+        // 检查是否已经"过期"没睡到指定时间
         auto now = steady_clock::now();
         if (now >= next_wakeup)
 		{
-            // 计算“晚了多少秒”
+            // 计算"晚了多少秒"
             double late_s = duration<double>(now - (next_wakeup - interval_ns)).count();
             WARNING("Not sleeping because the next interval is %.3f seconds in the past!",
                     late_s);
@@ -325,20 +327,27 @@ void CollectDaemon::sigUsr1Handler(int)
 	pthread_attr_destroy(&attr);
 }
 
-void *CollectDaemon::configThread(void *)
+void *CollectDaemon::configThread(void*)
 {
-	INFO("Manual config: done.");
-	
-	return nullptr;
+    INFO("正在加载用户配置...");
+    
+    int result = UserConfigManager::Instance().loadAndApply(
+        UserConfigManager::Instance().getConfigPath());
+    
+    if (result != 0) {
+        ERROR("用户配置加载失败: %d", result);
+    }
+    
+    return nullptr;
 }
 
 void CollectDaemon::sigUsr2Handler(int)
 {
-	pthread_t th;
-	pthread_attr_t attr;
-	pthread_attr_init(&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-	pthread_create(&th, &attr, configThread, nullptr);
-	pthread_attr_destroy(&attr);
+    pthread_t th;
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    pthread_create(&th, &attr, configThread, nullptr);
+    pthread_attr_destroy(&attr);
 }
 
