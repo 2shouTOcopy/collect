@@ -6,6 +6,7 @@
 #include <atomic>
 #include <memory>
 #include <cmath>
+#include <chrono>
 
 #include "RstDispatcher.h"
 #include "ModuleLoader.h"
@@ -203,12 +204,36 @@ int RstDispatcher::enqueueMultivalues(const value_list_t *vl_template,
 
 int RstDispatcher::flushAll(cdtime_t /*timeout*/, const char* /*ident*/)
 {
-	/* 目前无实际操作，仅占位 */
-	return 0;
+    waitForQueueEmpty(1000);
+    return 0;
 }
 
 void RstDispatcher::stop()
 {
 	pImpl_.reset();
+}
+
+void RstDispatcher::waitForQueueEmpty(int timeout_ms)
+{
+    auto start = std::chrono::steady_clock::now();
+    
+    while (true) {
+        {
+            std::lock_guard<std::mutex> lk(pImpl_->mtx);
+            if (pImpl_->queue.empty()) {
+                return;  // 队列为空，可以返回
+            }
+        }
+        
+        // 检查是否超时
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+        if (elapsed >= timeout_ms) {
+            WARNING("Wait for queue empty timeout.");
+            return;
+        }
+        
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));  // 短暂休眠10毫秒再检查
+    }
 }
 

@@ -24,6 +24,9 @@ public:
     /* 主动停止（PluginService 在 shutdown 时调用） */
     void stop();
 
+    /* 等待队列清空 */
+    void waitForQueueEmpty(int timeout_ms);
+
 private:
     RstDispatcher();
     ~RstDispatcher();

@@ -312,9 +312,19 @@ void CollectDaemon::sigTermHandler(int)
 
 void *CollectDaemon::flushThread(void *)
 {
-	PluginService::Instance().flushAll();
-	INFO("Manual flush: done.");
-	return nullptr;
+    INFO("Manual flush: start.");
+    
+    // 先调用readAll收集数据，这会通过RstDispatcher分发数据到所有writer插件
+    PluginService::Instance().readAll();
+    
+    // 添加一个小的延迟，让RstDispatcher有时间处理队列中的数据
+    usleep(100000);  // 休眠100毫秒
+    
+    // 再执行原有的flush逻辑
+    PluginService::Instance().flushAll();
+    
+    INFO("Manual flush: done.");
+    return nullptr;
 }
 
 void CollectDaemon::sigUsr1Handler(int)
