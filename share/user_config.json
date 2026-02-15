@@ -1,0 +1,32 @@
+{
+    "modules": {
+      "app": {
+        "log_level": "INFO",
+        "fifo_cache": true
+      },
+      "operator": {
+        "log_level": "WARNING",
+        "fifo_cache": false
+      },
+      "dsp": {
+        "log_level": "ERROR",
+        "fifo_cache": true
+      }
+    },
+    "user_log": {
+      "enabled": true,
+      "format": "csv",
+      "fields": ["timestamp", "username", "ip", "action"]
+    },
+    "output_log": {
+      "enabled": true,
+      "format": "txt",
+      "fields": ["timestamp", "content"]
+    },
+    "system": {
+      "log_redirect": false,
+      "debug_mode": false,
+      "serial_control": true,
+      "watchdog": true
+    }
+  }
