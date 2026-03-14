@@ -7,6 +7,8 @@
 #include "core/Dispatcher.h"
 #include "core/WriteQueue.h"
 #include "core/PluginLoader.h"
+#include "config/ConfigManager.h"
+#include "config/TypesDb.h"
 #include "interact/AppConfigManager.h"
 #include "interact/IpcServer.h"
 
@@ -46,6 +48,7 @@ private:
 
 	// ─── Configuration ─────────────────────────────
 	bool m_running;
+	bool m_oneShot;
 	std::string m_configPath;
 	std::string m_pluginDir;
 	std::string m_userConfigPath;
@@ -58,6 +61,8 @@ private:
 	Dispatcher m_dispatcher;
 	WriteQueue m_writeQueue;
 	AppConfigManager m_appConfig;
+	ConfigManager m_configManager;
+	TypesDb m_typesDb;
 
 	// IpcServer created after Configure (needs AppConfigManager & PluginManager)
 	std::unique_ptr<IpcServer> m_ipcServer;

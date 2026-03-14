@@ -24,7 +24,8 @@ public:
 	Dispatcher &operator=(const Dispatcher &) = delete;
 
 	/// Register a read plugin with its base interval.
-	void RegisterRead(IPlugin *plugin, CdTime interval);
+	/// If immediate is true, the first read fires at registration time (for one-shot mode).
+	void RegisterRead(IPlugin *plugin, CdTime interval, bool immediate = false);
 
 	/// Execute all tasks that are due. Returns time until next task is due.
 	/// Called once per main loop iteration.

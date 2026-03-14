@@ -11,6 +11,7 @@ static const char *TAG = "CollectDaemon";
 
 CollectDaemon::CollectDaemon()
 	: m_running(false)
+	, m_oneShot(false)
 	, m_configPath("/etc/collect/collect.conf")
 	, m_pluginDir("/usr/lib/collect/modules")
 	, m_userConfigPath("/etc/collect/user_config.json")
@@ -34,7 +35,7 @@ int CollectDaemon::Configure(int argc, char **argv)
 {
 	// Parse command-line: -c config, -p plugin_dir, -u user_config, -s socket, -i interval
 	int opt;
-	while ((opt = getopt(argc, argv, "c:p:u:s:i:")) != -1)
+	while ((opt = getopt(argc, argv, "c:p:u:s:i:F")) != -1)
 	{
 		switch (opt)
 		{
@@ -59,9 +60,12 @@ int CollectDaemon::Configure(int argc, char **argv)
 				}
 				break;
 			}
+			case 'F':
+				m_oneShot = true;
+				break;
 			default:
 				Logger::Error(TAG, "Usage: collect [-c config] [-p plugin_dir] "
-				              "[-u user_config] [-s socket] [-i interval_sec]");
+				              "[-u user_config] [-s socket] [-i interval_sec] [-F]");
 				return -1;
 		}
 	}
@@ -72,6 +76,43 @@ int CollectDaemon::Configure(int argc, char **argv)
 	Logger::Info(TAG, "IPC Socket: " + m_ipcSocketPath);
 	Logger::Info(TAG, "Interval: " +
 	             std::to_string(m_defaultInterval.ToDouble()) + "s");
+
+	// Load main configuration (collect.conf)
+	if (m_configManager.Load(m_configPath) == 0)
+	{
+		// Config file values override CLI defaults
+		const std::string &cfgPluginDir = m_configManager.GetPluginDir();
+		if (!cfgPluginDir.empty())
+		{
+			m_pluginDir = cfgPluginDir;
+		}
+
+		double cfgInterval = m_configManager.GetDefaultInterval();
+		if (cfgInterval > 0.0)
+		{
+			m_defaultInterval = CdTime::FromDouble(cfgInterval);
+		}
+
+		Logger::Info(TAG, "Config loaded: " +
+		             std::to_string(m_configManager.GetLoadPlugins().size()) +
+		             " plugins configured");
+	}
+	else
+	{
+		Logger::Warn(TAG, "Config load failed, using defaults");
+	}
+
+	// Load types.db
+	const std::string &typesDbPath = m_configManager.GetTypesDbPath();
+	if (m_typesDb.Load(typesDbPath) != 0)
+	{
+		Logger::Warn(TAG, "TypesDB load failed: " + typesDbPath);
+	}
+	else
+	{
+		Logger::Info(TAG, "TypesDB loaded: " +
+		             std::to_string(m_typesDb.Size()) + " types");
+	}
 
 	// Load user configuration
 	int cfgRet = m_appConfig.Load(m_userConfigPath);
@@ -150,7 +191,7 @@ int CollectDaemon::Run()
 	// 4. Register read plugins with dispatcher
 	for (auto *plugin : m_pluginManager.GetReadPlugins())
 	{
-		m_dispatcher.RegisterRead(plugin, m_defaultInterval);
+		m_dispatcher.RegisterRead(plugin, m_defaultInterval, m_oneShot);
 	}
 
 	// 5. Create IPC server
@@ -207,6 +248,12 @@ int CollectDaemon::Loop()
 			std::this_thread::sleep_for(
 				std::chrono::microseconds(
 					static_cast<long>(waitSec * 1000000)));
+		}
+
+		// One-shot mode: exit after first iteration
+		if (m_oneShot)
+		{
+			m_running = false;
 		}
 	}
 

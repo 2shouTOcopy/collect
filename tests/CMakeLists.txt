@@ -31,6 +31,8 @@ add_collect_test(test_json_formatter     unit/test_json_formatter.cpp)
 add_collect_test(test_app_config_manager unit/test_app_config_manager.cpp)
 add_collect_test(test_logger             unit/test_logger.cpp)
 add_collect_test(test_string_utils       unit/test_string_utils.cpp)
+add_collect_test(test_config_parser      unit/test_config_parser.cpp)
+add_collect_test(test_types_db           unit/test_types_db.cpp)
 
 # ─── Integration Tests ──────────────────────────────────────
 add_collect_test(test_pipeline       integration/test_pipeline.cpp)

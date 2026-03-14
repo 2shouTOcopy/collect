@@ -4,7 +4,7 @@
 #include <chrono>
 #include <iostream>
 
-void Dispatcher::RegisterRead(IPlugin *plugin, CdTime interval)
+void Dispatcher::RegisterRead(IPlugin *plugin, CdTime interval, bool immediate)
 {
 	if (plugin == nullptr)
 	{
@@ -15,7 +15,7 @@ void Dispatcher::RegisterRead(IPlugin *plugin, CdTime interval)
 	task.plugin = plugin;
 	task.baseInterval = interval;
 	task.currentInterval = interval;
-	task.nextRead = CdTime::Now() + interval;
+	task.nextRead = immediate ? CdTime::Now() : CdTime::Now() + interval;
 	task.consecutiveFailures = 0;
 
 	m_heap.push_back(task);
