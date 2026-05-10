@@ -28,11 +28,17 @@ public:
 	/// Get the configured plugin directory.
 	const std::string &GetPluginDir() const { return m_pluginDir; }
 
+	/// True if PluginDir was explicitly present in the loaded config.
+	bool HasPluginDir() const { return m_hasPluginDir; }
+
 	/// Get the TypesDB path.
 	const std::string &GetTypesDbPath() const { return m_typesDbPath; }
 
 	/// Get the default read interval (seconds).
 	double GetDefaultInterval() const { return m_defaultInterval; }
+
+	/// True if Interval was explicitly present in the loaded config.
+	bool HasDefaultInterval() const { return m_hasDefaultInterval; }
 
 	/// Get the list of plugins to load (from LoadPlugin directives).
 	const std::vector<std::string> &GetLoadPlugins() const { return m_loadPlugins; }
@@ -48,6 +54,8 @@ private:
 	std::string m_pluginDir;
 	std::string m_typesDbPath;
 	double m_defaultInterval;
+	bool m_hasPluginDir;
+	bool m_hasDefaultInterval;
 
 	std::vector<std::string> m_loadPlugins;
 	std::vector<ConfigItem> m_pluginConfigs;

@@ -98,16 +98,18 @@ void CollectDaemon::LoadRuntimeConfig()
 	if (m_configManager.Load(m_configPath) == 0)
 	{
 		// Config file values override CLI defaults
-		const std::string &cfgPluginDir = m_configManager.GetPluginDir();
-		if (!cfgPluginDir.empty())
+		if (m_configManager.HasPluginDir())
 		{
-			m_pluginDir = cfgPluginDir;
+			m_pluginDir = m_configManager.GetPluginDir();
 		}
 
-		double cfgInterval = m_configManager.GetDefaultInterval();
-		if (cfgInterval > 0.0)
+		if (m_configManager.HasDefaultInterval())
 		{
-			m_defaultInterval = CdTime::FromDouble(cfgInterval);
+			double cfgInterval = m_configManager.GetDefaultInterval();
+			if (cfgInterval > 0.0)
+			{
+				m_defaultInterval = CdTime::FromDouble(cfgInterval);
+			}
 		}
 
 		std::string cfgSnapshotDir =
@@ -252,8 +254,11 @@ int CollectDaemon::LoadPlugins()
 {
 	m_pluginLoader.SetDir(m_pluginDir);
 
-	// Load all plugins found in the directory
-	auto pluginNames = m_pluginLoader.ListPlugins();
+	auto pluginNames = m_configManager.GetLoadPlugins();
+	if (pluginNames.empty())
+	{
+		pluginNames = m_pluginLoader.ListPlugins();
+	}
 	if (pluginNames.empty())
 	{
 		Logger::Warn(TAG, "No plugins found in: " + m_pluginDir);
@@ -267,6 +272,7 @@ int CollectDaemon::LoadPlugins()
 		if (plugin != nullptr)
 		{
 			m_pluginManager.Register(plugin);
+			ConfigurePlugin(plugin->Name());
 			loaded++;
 			Logger::Info(TAG, "Loaded plugin: " + name);
 		}
@@ -280,6 +286,40 @@ int CollectDaemon::LoadPlugins()
 	             std::to_string(pluginNames.size()) + " plugins");
 
 	return 0;
+}
+
+int CollectDaemon::ConfigurePlugin(const std::string &pluginName)
+{
+	auto configItems = m_configManager.GetPluginConfig(pluginName);
+	int failures = 0;
+
+	for (const auto &item : configItems)
+	{
+		if (item.values.empty())
+		{
+			if (m_pluginManager.Configure(pluginName, item.key, "") != 0)
+			{
+				++failures;
+			}
+			continue;
+		}
+
+		for (const auto &value : item.values)
+		{
+			if (m_pluginManager.Configure(pluginName, item.key, value) != 0)
+			{
+				++failures;
+			}
+		}
+	}
+
+	if (!configItems.empty())
+	{
+		Logger::Info(TAG, "Configured plugin: " + pluginName +
+		             " (" + std::to_string(configItems.size()) + " items)");
+	}
+
+	return failures;
 }
 
 void CollectDaemon::WireDispatchCallbacks()

@@ -20,6 +20,19 @@ function(add_collect_plugin PLUGIN_NAME)
     # Output as: lib/plugins/<name>/<name>.so
     add_library(plugin_${PLUGIN_NAME} SHARED ${PLUGIN_SOURCES})
 
+    if(PLUGIN_NAME STREQUAL "csv")
+        target_sources(plugin_${PLUGIN_NAME}
+            PRIVATE
+                ${CMAKE_SOURCE_DIR}/src/output/CsvFormatter.cpp
+        )
+    elseif(PLUGIN_NAME STREQUAL "json_writer")
+        target_sources(plugin_${PLUGIN_NAME}
+            PRIVATE
+                ${CMAKE_SOURCE_DIR}/src/output/JsonFormatter.cpp
+                ${CMAKE_SOURCE_DIR}/src/utils/cJSON.c
+        )
+    endif()
+
     target_include_directories(plugin_${PLUGIN_NAME}
         PRIVATE
             ${PLUGIN_INCLUDE_DIRS}

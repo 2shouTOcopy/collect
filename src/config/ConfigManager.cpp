@@ -28,6 +28,8 @@ ConfigManager::ConfigManager()
 	: m_pluginDir("/usr/lib/collect/modules")
 	, m_typesDbPath("/etc/collect/types.db")
 	, m_defaultInterval(10.0)
+	, m_hasPluginDir(false)
+	, m_hasDefaultInterval(false)
 {
 }
 
@@ -58,6 +60,7 @@ void ConfigManager::ProcessItem(const ConfigItem &item)
 		if (!item.values.empty())
 		{
 			m_pluginDir = item.values[0];
+			m_hasPluginDir = true;
 		}
 		return;
 	}
@@ -76,9 +79,10 @@ void ConfigManager::ProcessItem(const ConfigItem &item)
 		if (!item.values.empty())
 		{
 			try
-			{
-				m_defaultInterval = std::stod(item.values[0]);
-			}
+				{
+					m_defaultInterval = std::stod(item.values[0]);
+					m_hasDefaultInterval = true;
+				}
 			catch (...)
 			{
 				std::cerr << "[" << TAG << "] Invalid Interval value: "
@@ -97,6 +101,15 @@ void ConfigManager::ProcessItem(const ConfigItem &item)
 
 int ConfigManager::Load(const std::string &configPath)
 {
+	m_globals.clear();
+	m_pluginConfigs.clear();
+	m_loadPlugins.clear();
+	m_pluginDir = "/usr/lib/collect/modules";
+	m_typesDbPath = "/etc/collect/types.db";
+	m_defaultInterval = 10.0;
+	m_hasPluginDir = false;
+	m_hasDefaultInterval = false;
+
 	auto items = ConfigParser::Parse(configPath);
 	if (items.empty())
 	{

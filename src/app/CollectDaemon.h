@@ -48,6 +48,9 @@ private:
 	/// Load plugins from plugin directory.
 	int LoadPlugins();
 
+	/// Apply <Plugin name> config blocks to a loaded plugin.
+	int ConfigurePlugin(const std::string &pluginName);
+
 	/// Set dispatch callbacks on all read plugins.
 	void WireDispatchCallbacks();
 

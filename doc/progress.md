@@ -39,7 +39,7 @@
 
 1. ~~**ConfigParser 实现** — `src/config/ConfigParser.cpp` 当前为 stub~~ ✅ 已完成
 2. ~~**CsvFormatter 实现** — `src/output/CsvFormatter.cpp` 当前为 stub~~ ✅ 已完成
-3. **配置驱动插件加载** — `LoadPlugin` 白名单与 `<Plugin>` 参数派发尚未完全接入
+3. ~~**配置驱动插件加载** — `LoadPlugin` 白名单与 `<Plugin>` 参数派发尚未完全接入~~ ✅ 已完成
 4. **跨编译支持** — 添加 ARM 交叉编译工具链文件
 5. **Prometheus 输出** — 新增 prometheus_writer 插件
 6. **集成测试扩展** — Linux 端到端 daemon 启动/停止与 snapshot 打包测试

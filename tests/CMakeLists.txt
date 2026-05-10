@@ -16,6 +16,11 @@ function(add_collect_test TEST_NAME TEST_SOURCE)
             ${CMAKE_SOURCE_DIR}/src
     )
 
+    target_compile_definitions(${TEST_NAME}
+        PRIVATE
+            COLLECT_TEST_BINARY_DIR="${CMAKE_BINARY_DIR}"
+    )
+
     include(GoogleTest)
     gtest_discover_tests(${TEST_NAME})
 endfunction()
@@ -32,9 +37,11 @@ add_collect_test(test_csv_formatter      unit/test_csv_formatter.cpp)
 add_collect_test(test_app_config_manager unit/test_app_config_manager.cpp)
 add_collect_test(test_logger             unit/test_logger.cpp)
 add_collect_test(test_string_utils       unit/test_string_utils.cpp)
+add_collect_test(test_config_manager     unit/test_config_manager.cpp)
 add_collect_test(test_config_parser      unit/test_config_parser.cpp)
 add_collect_test(test_types_db           unit/test_types_db.cpp)
 add_collect_test(test_snapshot_manager   unit/test_snapshot_manager.cpp)
 
 # ─── Integration Tests ──────────────────────────────────────
 add_collect_test(test_pipeline       integration/test_pipeline.cpp)
+add_collect_test(test_collect_daemon_config integration/test_collect_daemon_config.cpp)
