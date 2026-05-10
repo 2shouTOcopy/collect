@@ -31,6 +31,13 @@ void PluginManager::Register(IPlugin *plugin)
 	{
 		m_flushPlugins.push_back(plugin);
 	}
+
+	if (plugin->HasSnapshot())
+	{
+		m_snapshotPlugins.push_back(plugin);
+		std::cerr << "[PluginManager] Registered snapshot plugin: "
+		          << plugin->Name() << "\n";
+	}
 }
 
 int PluginManager::Configure(const std::string &pluginName,
@@ -87,6 +94,22 @@ int PluginManager::FlushAll(CdTime timeout)
 		if (ret != 0)
 		{
 			std::cerr << "[PluginManager] Flush failed for: "
+			          << plugin->Name() << "\n";
+			++failures;
+		}
+	}
+	return failures;
+}
+
+int PluginManager::SnapshotAll(const SnapshotContext &ctx)
+{
+	int failures = 0;
+	for (auto *plugin : m_snapshotPlugins)
+	{
+		int ret = plugin->Snapshot(ctx);
+		if (ret != 0)
+		{
+			std::cerr << "[PluginManager] Snapshot failed for: "
 			          << plugin->Name() << "\n";
 			++failures;
 		}

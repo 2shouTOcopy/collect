@@ -1,7 +1,7 @@
 # Collect 重构进展文档
 
-> **最后更新**: 2026-02-19 17:06
-> **状态**: ✅ 全部完成
+> **最后更新**: 2026-05-10
+> **状态**: 🔄 重构中
 
 ---
 
@@ -17,6 +17,7 @@
 | 5     | 依赖注入与测试     | ✅    | 消除单例 + 组合式 DI + 87 个测试       |
 | 6     | 旧代码清理         | ✅    | daemon/, module/, oconfig/ 已删除      |
 | 7     | 配置解析实现       | ✅    | ConfigParser + TypesDb + ConfigManager |
+| 8     | 异常快照能力       | ✅    | SnapshotManager + snapshot 插件 + CLI/SIGUSR1 |
 
 ---
 
@@ -38,9 +39,25 @@
 
 1. ~~**ConfigParser 实现** — `src/config/ConfigParser.cpp` 当前为 stub~~ ✅ 已完成
 2. **CsvFormatter 实现** — `src/output/CsvFormatter.cpp` 当前为 stub
-3. **跨编译支持** — 添加 ARM 交叉编译工具链文件
-4. **Prometheus 输出** — 新增 prometheus_writer 插件
-5. **集成测试扩展** — 端到端 daemon 启动/停止测试
+3. **配置驱动插件加载** — `LoadPlugin` 白名单与 `<Plugin>` 参数派发尚未完全接入
+4. **跨编译支持** — 添加 ARM 交叉编译工具链文件
+5. **Prometheus 输出** — 新增 prometheus_writer 插件
+6. **集成测试扩展** — Linux 端到端 daemon 启动/停止与 snapshot 打包测试
+
+---
+
+## Phase 8: 异常快照能力 (2026-05-10)
+
+### 完成内容
+
+- 新增 `SnapshotContext`、`SnapshotRequest`、`SnapshotResult`
+- 新增 `SnapshotManager`，负责创建快照目录、复制 App 日志、调用 snapshot 插件、生成 `summary.json`、可选打包
+- `PluginManager` 支持 `HasSnapshot()` 分类与 `SnapshotAll()`
+- `network`、`thread`、`dmesg` 改为 snapshot 插件，输出到本次快照目录
+- 新增 CLI: `collect snapshot --reason ... --app-log-dir ... --out ...`
+- daemon 模式支持 `SIGUSR1` 触发快照，signal handler 只设置 pending 标志
+- macOS 开发构建支持插件 `.so` 输出和 Apple `dynamic_lookup`
+- 新增 `test_snapshot_manager.cpp`，当前测试用例总数 117
 
 ---
 
@@ -68,4 +85,3 @@
 | 新增 | `tests/unit/test_config_parser.cpp`                              |
 | 新增 | `tests/unit/test_types_db.cpp`                                   |
 | 修改 | `tests/CMakeLists.txt` — 添加新测试目标                          |
-

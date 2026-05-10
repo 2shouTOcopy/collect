@@ -18,14 +18,14 @@
 static const char *TAG = "thread";
 static const char *TARGET_PROCESS = "m320_app";
 
-/// Thread plugin — flush-only, collects thread info for target process.
+/// Thread plugin — collects thread info for target process during a snapshot.
 /// Reports: thread states, CPU usage, stack, FD counts to file.
 
 class ThreadPlugin : public IPlugin
 {
 public:
 	std::string Name() const override { return "thread"; }
-	bool HasFlush() const override { return true; }
+	bool HasSnapshot() const override { return true; }
 
 	int Configure(const std::string &key, const std::string &val) override
 	{
@@ -40,18 +40,21 @@ public:
 		return 0;
 	}
 
-	int Flush(CdTime /*timeout*/) override
+	int Snapshot(const SnapshotContext &ctx) override
 	{
-		if (m_baseDir.empty())
+		std::string baseDir = !ctx.snapshotDir.empty() ? ctx.snapshotDir : m_baseDir;
+		if (baseDir.empty())
 		{
 			Logger::Error(TAG, "BaseDir not configured");
 			return -1;
 		}
 
-		const std::string outPath = m_baseDir + "/thread.txt";
+		const std::string outPath = baseDir + "/thread.txt";
 
 		// Find PID
-		pid_t pid = FindPidByName(m_targetProcess);
+		pid_t pid = ctx.targetPid > 0
+			? static_cast<pid_t>(ctx.targetPid)
+			: FindPidByName(m_targetProcess);
 		if (pid <= 0)
 		{
 			Logger::Error(TAG, "Process '" + m_targetProcess + "' not found");

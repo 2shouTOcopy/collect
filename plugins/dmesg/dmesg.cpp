@@ -8,13 +8,13 @@
 
 static const char *TAG = "dmesg";
 
-/// Dmesg plugin — flush-only, captures kernel ring buffer to file.
+/// Dmesg plugin — captures kernel ring buffer during a snapshot.
 
 class DmesgPlugin : public IPlugin
 {
 public:
 	std::string Name() const override { return "dmesg"; }
-	bool HasFlush() const override { return true; }
+	bool HasSnapshot() const override { return true; }
 
 	int Configure(const std::string &key, const std::string &val) override
 	{
@@ -29,15 +29,16 @@ public:
 		return 0;
 	}
 
-	int Flush(CdTime /*timeout*/) override
+	int Snapshot(const SnapshotContext &ctx) override
 	{
-		if (m_baseDir.empty())
+		std::string baseDir = !ctx.snapshotDir.empty() ? ctx.snapshotDir : m_baseDir;
+		if (baseDir.empty())
 		{
 			Logger::Error(TAG, "BaseDir not configured");
 			return -1;
 		}
 
-		const std::string outPath = m_baseDir + "/" + m_outputFile;
+		const std::string outPath = baseDir + "/" + m_outputFile;
 
 		std::unique_ptr<FILE, decltype(&pclose)> pipe(
 			popen("dmesg", "r"), pclose);

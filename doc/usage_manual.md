@@ -75,11 +75,53 @@ Collect 以守护进程方式运行，支持多种命令行参数进行配置。
 ./bin/collect -p ../build/lib/collect/modules -F
 ```
 
+### 异常快照模式
+
+手动生成一次诊断快照：
+
+```bash
+./bin/collect snapshot \
+  --reason manual \
+  --app-log-dir /mnt/data/app/logs \
+  --out /mnt/data/collect/snapshots
+```
+
+常用参数：
+
+| 参数 | 说明 |
+| :--- | :--- |
+| `--reason <text>` | 触发原因，如 `manual`、`app_crash` |
+| `--app-log-dir <dir>` | App 已经落盘的日志目录，Collect 只复制和打包 |
+| `--out <dir>` | 快照输出根目录 |
+| `--pid <pid>` | thread snapshot 使用的目标进程 PID |
+| `--no-pack` | 只保留快照目录，不生成 `.tar.gz` |
+| `-c/--config <file>` | 指定 `collect.conf` |
+| `-p/--plugin-dir <dir>` | 指定插件目录 |
+
+生成内容示例：
+
+```text
+snapshot_20260510_163000/
+  summary.json
+  app_logs/
+  dmesg.txt
+  network.txt
+  thread.txt
+snapshot_20260510_163000.tar.gz
+```
+
+daemon 模式下也可以用 `SIGUSR1` 触发一次快照：
+
+```bash
+kill -USR1 <collect_pid>
+```
+
 ### 停止运行
 
 Collect 捕获标准信号进行优雅退出：
 - `SIGINT` (Ctrl+C): 停止运行并清理资源
 - `SIGTERM` (kill <pid>): 停止运行并清理资源
+- `SIGUSR1`: 生成一次异常诊断快照
 
 ```bash
 killall collect
@@ -96,16 +138,18 @@ Collect 通过插件加载机制扩展功能。插件分为 **读取插件 (Read
 #### 采集类 (Read Plugins)
 - **cpu**: 采集 CPU 使用率 (User, System, Idle 等)。
 - **memory**: 采集内存使用情况 (Total, Used, Free, Cached 等)。
-- **network**: 采集网络接口流量 (Rx/Tx bytes, packets)。
 - **df**: 采集磁盘空间使用情况。
-- **dmesg**: 采集内核环形缓冲区日志。
 - **uptime**: 采集系统启动时间和平均负载。
-- **thread**: 采集特定线程/进程的资源使用情况。
+
+#### 快照类 (Snapshot Plugins)
+- **network**: 异常快照时采集网络状态。
+- **dmesg**: 异常快照时保存内核日志。
+- **thread**: 异常快照时采集目标进程线程状态。
 
 #### 输出类 (Write Plugins)
 - **json_writer**: 将采集数据格式化为 JSON 并输出 (通常配合 IPC 使用或写入文件)。
-- **csv_writer**: 将数据写入 CSV 文件。
-- **logfile_writer**: 将数据写入日志文件。
+- **csv**: 将数据写入 CSV 文件。
+- **logfile**: 将数据写入日志文件。
 
 ### 插件启用
 默认情况下，`collect` 会加载指定插件目录下的**所有** `.so` 文件。如果需要精细控制加载哪些插件，可以通过配置文件或移除不需要的 `.so` 文件来实现。
@@ -115,6 +159,14 @@ Collect 通过插件加载机制扩展功能。插件分为 **读取插件 (Read
 ## 4. 配置文件
 
 Collect 支持通过 JSON 文件配置应用行为，默认路径为 `/etc/collect/user_config.json`。
+
+`collect.conf` 可配置快照默认路径：
+
+```text
+SnapshotDir "/mnt/data/collect/snapshots"
+AppLogDir "/mnt/data/app/logs"
+SnapshotPack true
+```
 
 ### 示例配置 `user_config.json`
 

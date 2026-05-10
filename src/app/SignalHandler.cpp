@@ -14,6 +14,14 @@ namespace
 			g_pDaemon->RequestStop();
 		}
 	}
+
+	void OnSnapshot(int /*sig*/)
+	{
+		if (g_pDaemon != nullptr)
+		{
+			g_pDaemon->RequestSnapshot();
+		}
+	}
 }
 
 namespace SignalHandler
@@ -30,13 +38,18 @@ namespace SignalHandler
 		sigaction(SIGINT,  &sa, nullptr);
 		sigaction(SIGTERM, &sa, nullptr);
 
-		// TODO Phase 4: SIGUSR1 → trigger flush
+		struct sigaction snapshotSa = {};
+		snapshotSa.sa_handler = OnSnapshot;
+		sigemptyset(&snapshotSa.sa_mask);
+		snapshotSa.sa_flags = 0;
+		sigaction(SIGUSR1, &snapshotSa, nullptr);
 	}
 
 	void Remove()
 	{
 		signal(SIGINT,  SIG_DFL);
 		signal(SIGTERM, SIG_DFL);
+		signal(SIGUSR1, SIG_DFL);
 		g_pDaemon = nullptr;
 	}
 }

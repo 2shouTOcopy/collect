@@ -2,9 +2,16 @@
 #include "utils/Logger.h"
 
 #include <fstream>
-#include <sys/sysinfo.h>
 #include <cstring>
 #include <cerrno>
+#include <ctime>
+
+#ifdef __APPLE__
+#include <sys/sysctl.h>
+#include <sys/time.h>
+#else
+#include <sys/sysinfo.h>
+#endif
 
 static const char *TAG = "uptime";
 
@@ -19,10 +26,10 @@ public:
 
 	int Read() override
 	{
-		struct sysinfo info = {};
-		if (sysinfo(&info) != 0)
+		double uptime = 0.0;
+		if (GetUptime(uptime) != 0)
 		{
-			Logger::Error(TAG, "sysinfo() failed: " + std::string(strerror(errno)));
+			Logger::Error(TAG, "uptime read failed: " + std::string(strerror(errno)));
 			return -1;
 		}
 
@@ -39,10 +46,35 @@ public:
 		vl.plugin = "uptime";
 		vl.type = "uptime";
 		vl.time = CdTime::Now();
-		vl.values.push_back(Value::Gauge(static_cast<double>(info.uptime)));
+		vl.values.push_back(Value::Gauge(uptime));
 
 		Dispatch(ds, vl);
 		return 0;
+	}
+
+private:
+	int GetUptime(double &uptime) const
+	{
+#ifdef __APPLE__
+		struct timeval bootTime = {};
+		size_t len = sizeof(bootTime);
+		int mib[2] = {CTL_KERN, KERN_BOOTTIME};
+		if (sysctl(mib, 2, &bootTime, &len, nullptr, 0) != 0)
+		{
+			return -1;
+		}
+		std::time_t now = std::time(nullptr);
+		uptime = difftime(now, bootTime.tv_sec);
+		return 0;
+#else
+		struct sysinfo info = {};
+		if (sysinfo(&info) != 0)
+		{
+			return -1;
+		}
+		uptime = static_cast<double>(info.uptime);
+		return 0;
+#endif
 	}
 };
 

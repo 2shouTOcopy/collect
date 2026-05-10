@@ -28,6 +28,20 @@ public:
 	}
 };
 
+class MockSnapshotPlugin : public IPlugin
+{
+public:
+	std::string Name() const override { return "mock_snapshot"; }
+	bool HasSnapshot() const override { return true; }
+	int Snapshot(const SnapshotContext &ctx) override
+	{
+		lastSnapshotDir = ctx.snapshotDir;
+		return 0;
+	}
+
+	std::string lastSnapshotDir;
+};
+
 TEST(PluginManagerTest, RegisterClassifiesReadPlugin)
 {
 	PluginManager pm;
@@ -50,6 +64,23 @@ TEST(PluginManagerTest, RegisterClassifiesWritePlugin)
 	EXPECT_EQ(pm.PluginCount(), 1u);
 	EXPECT_EQ(pm.GetReadPlugins().size(), 0u);
 	EXPECT_EQ(pm.GetWritePlugins().size(), 1u);
+}
+
+TEST(PluginManagerTest, RegisterClassifiesSnapshotPlugin)
+{
+	PluginManager pm;
+	MockSnapshotPlugin snapshotPlugin;
+
+	pm.Register(&snapshotPlugin);
+
+	EXPECT_EQ(pm.PluginCount(), 1u);
+	ASSERT_EQ(pm.GetSnapshotPlugins().size(), 1u);
+	EXPECT_EQ(pm.GetSnapshotPlugins()[0]->Name(), "mock_snapshot");
+
+	SnapshotContext ctx;
+	ctx.snapshotDir = "/tmp/snapshot_test";
+	EXPECT_EQ(pm.SnapshotAll(ctx), 0);
+	EXPECT_EQ(snapshotPlugin.lastSnapshotDir, "/tmp/snapshot_test");
 }
 
 TEST(PluginManagerTest, FindPluginByName)

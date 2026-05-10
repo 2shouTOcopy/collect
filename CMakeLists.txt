@@ -52,6 +52,9 @@ set(COLLECT_CORE_SOURCES
     src/core/WriteQueue.cpp
     src/core/PluginLoader.cpp
 
+    # snapshot
+    src/snapshot/SnapshotManager.cpp
+
     # output
     src/output/JsonFormatter.cpp
     src/output/CsvFormatter.cpp

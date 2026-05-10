@@ -8,14 +8,14 @@
 
 static const char *TAG = "network";
 
-/// Network plugin — flush-only, captures network diagnostics to file.
+/// Network plugin — captures network diagnostics during a snapshot.
 /// Collects: /proc/net/dev, ip addr, ip route, resolv.conf, netstat, arp.
 
 class NetworkPlugin : public IPlugin
 {
 public:
 	std::string Name() const override { return "network"; }
-	bool HasFlush() const override { return true; }
+	bool HasSnapshot() const override { return true; }
 
 	int Configure(const std::string &key, const std::string &val) override
 	{
@@ -26,15 +26,16 @@ public:
 		return 0;
 	}
 
-	int Flush(CdTime /*timeout*/) override
+	int Snapshot(const SnapshotContext &ctx) override
 	{
-		if (m_baseDir.empty())
+		std::string baseDir = !ctx.snapshotDir.empty() ? ctx.snapshotDir : m_baseDir;
+		if (baseDir.empty())
 		{
 			Logger::Error(TAG, "BaseDir not configured");
 			return -1;
 		}
 
-		const std::string outPath = m_baseDir + "/network_status.txt";
+		const std::string outPath = baseDir + "/network.txt";
 
 		std::ofstream ofs(outPath, std::ios::out | std::ios::trunc);
 		if (!ofs.is_open())

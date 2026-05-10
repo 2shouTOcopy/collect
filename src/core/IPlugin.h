@@ -5,6 +5,7 @@
 #include "types/DataSet.h"
 #include "types/ValueList.h"
 #include "types/CdTime.h"
+#include "snapshot/SnapshotContext.h"
 
 /// Plugin interface (replaces CAbstractUserModule).
 /// Plugins declare their capabilities via HasRead()/HasWrite()/HasFlush().
@@ -15,13 +16,14 @@ class IPlugin
 public:
 	virtual ~IPlugin() = default;
 
-	/// Unique plugin name (e.g. "cpu", "csv_writer").
+	/// Unique plugin name (e.g. "cpu", "csv").
 	virtual std::string Name() const = 0;
 
 	/// Capability declaration — return true if this plugin supports the callback.
 	virtual bool HasRead()  const { return false; }
 	virtual bool HasWrite() const { return false; }
 	virtual bool HasFlush() const { return false; }
+	virtual bool HasSnapshot() const { return false; }
 
 	/// Lifecycle: configuration from collect.conf key-value pairs.
 	virtual int Configure(const std::string &key, const std::string &val)
@@ -56,6 +58,13 @@ public:
 	virtual int Flush(CdTime timeout)
 	{
 		(void)timeout;
+		return 0;
+	}
+
+	/// Snapshot callback: write one-shot diagnostic files under ctx.snapshotDir.
+	virtual int Snapshot(const SnapshotContext &ctx)
+	{
+		(void)ctx;
 		return 0;
 	}
 

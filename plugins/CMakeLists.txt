@@ -29,8 +29,17 @@ function(add_collect_plugin PLUGIN_NAME)
     set_target_properties(plugin_${PLUGIN_NAME} PROPERTIES
         OUTPUT_NAME "${PLUGIN_NAME}"
         PREFIX ""                           # no 'lib' prefix
+        SUFFIX ".so"
         LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/modules/${PLUGIN_NAME}"
     )
+
+    if(APPLE)
+        target_link_options(plugin_${PLUGIN_NAME}
+            PRIVATE
+                "-undefined"
+                "dynamic_lookup"
+        )
+    endif()
 endfunction()
 
 # ─── Register Plugins ───────────────────────────────────────

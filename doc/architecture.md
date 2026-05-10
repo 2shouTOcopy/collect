@@ -12,6 +12,7 @@
 graph TB
     subgraph App["应用层"]
         CD["CollectDaemon<br/>(主事件循环)"]
+        SM["SnapshotManager<br/>(异常快照)"]
     end
 
     subgraph Core["核心框架"]
@@ -41,21 +42,25 @@ graph TB
         MEM["memory"]
         DF["df"]
         UP["uptime"]
-        NET["network"]
-        THR["thread"]
-        DMG["dmesg"]
     end
 
     subgraph WritePlugins["Write 插件 (.so)"]
-        CSV["csv_writer"]
-        LOG["logfile_writer"]
+        CSV["csv"]
+        LOG["logfile"]
         JSON["json_writer"]
+    end
+
+    subgraph SnapshotPlugins["Snapshot 插件 (.so)"]
+        SNET["network"]
+        STHR["thread"]
+        SDMG["dmesg"]
     end
 
     %% 主控流
     CD -->|"驱动调度"| DS
     CD -->|"drain 写队列"| WQ
     CD -->|"poll IPC"| IPC
+    CD -->|"SIGUSR1 / CLI"| SM
 
     %% 配置流
     CM -->|"插件目录/全局参数"| PL
@@ -69,6 +74,7 @@ graph TB
     PL -->|"返回 IPlugin*"| PM
     PM -->|"注册 read 回调"| DS
     PM -->|"注册 write 回调"| WQ
+    PM -->|"注册 snapshot 回调"| SM
 
     %% 数据流
     DS -->|"调用 Read()"| ReadPlugins
@@ -76,6 +82,8 @@ graph TB
     WQ -->|"调用 Write()"| WritePlugins
     WritePlugins -->|"格式化"| JF
     WritePlugins -->|"格式化"| CF
+    SM -->|"调用 Snapshot()"| SnapshotPlugins
+    SnapshotPlugins -->|"写诊断文件"| SM
 
     %% IPC 交互
     IPC -->|"配置命令"| ACM
@@ -191,17 +199,15 @@ flowchart LR
     subgraph Sources["系统数据源"]
         S1["/proc/stat"]
         S2["/proc/meminfo"]
-        S3["/proc/net/dev"]
-        S4["statvfs()"]
-        S5["/proc/uptime"]
+        S3["statvfs()"]
+        S4["/proc/uptime"]
     end
 
     subgraph ReadPhase["Read 阶段 (Dispatcher 调度)"]
         R1["cpu.Read()"]
         R2["memory.Read()"]
-        R3["network.Read()"]
-        R4["df.Read()"]
-        R5["uptime.Read()"]
+        R3["df.Read()"]
+        R4["uptime.Read()"]
     end
 
     subgraph Transform["数据封装"]
@@ -220,8 +226,8 @@ flowchart LR
     end
 
     subgraph WritePhase["Write 阶段 (DrainBatch)"]
-        W1["csv_writer.Write()"]
-        W2["logfile_writer.Write()"]
+        W1["csv.Write()"]
+        W2["logfile.Write()"]
         W3["json_writer.Write()"]
     end
 
@@ -242,14 +248,12 @@ flowchart LR
     S2 --> R2
     S3 --> R3
     S4 --> R4
-    S5 --> R5
 
     %% Read → ValueList
     R1 --> VL
     R2 --> VL
     R3 --> VL
     R4 --> VL
-    R5 --> VL
 
     %% ValueList → Buffer
     VL -->|"DispatchValues()"| Q
@@ -284,7 +288,17 @@ flowchart LR
 /proc/stat → cpu.Read() → ValueList{plugin:"cpu", type:"percent", value:23.5}
     → WriteQueue.enqueue()
     → [主循环 DrainBatch]
-    → csv_writer.Write(ds, vl)   → CSV 文件
+    → csv.Write(ds, vl)          → CSV 文件
     → json_writer.Write(ds, vl)  → JsonFormatter → {"plugin":"cpu","value":23.5,...}
                                                    → stdout → AI/LLM 工具
+```
+
+异常快照路径：
+
+```
+SIGUSR1 / collect snapshot
+    → SnapshotManager.CreateSnapshot()
+    → network.Snapshot(ctx) / thread.Snapshot(ctx) / dmesg.Snapshot(ctx)
+    → summary.json + 诊断文本
+    → snapshot_YYYYMMDD_HHMMSS.tar.gz
 ```
