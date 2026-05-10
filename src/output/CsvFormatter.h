@@ -15,4 +15,7 @@ public:
 
 	/// Generate CSV header line from a DataSet.
 	static std::string Header(const DataSet &ds);
+
+	/// Generate a CSV header with fallback names for values not present in DataSet.
+	static std::string Header(const DataSet &ds, const ValueList &vl);
 };

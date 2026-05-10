@@ -5,8 +5,8 @@
 /// Output formatter interface for serializing ValueList to different formats.
 /// Implementations: JsonFormatter (AI/LLM friendly), CsvFormatter.
 
-class DataSet;
-class ValueList;
+struct DataSet;
+struct ValueList;
 
 class IOutputFormatter
 {

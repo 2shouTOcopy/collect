@@ -1,8 +1,8 @@
 #include "core/IPlugin.h"
+#include "output/CsvFormatter.h"
 #include "utils/Logger.h"
 
 #include <fstream>
-#include <sstream>
 #include <string>
 #include <cstdio>
 #include <cerrno>
@@ -51,30 +51,7 @@ public:
 
 	int Write(const DataSet &ds, const ValueList &vl) override
 	{
-		// Build CSV line: epoch,val1,val2,...
-		std::ostringstream oss;
-		oss.precision(3);
-		oss << std::fixed << vl.time.ToDouble();
-
-		for (size_t i = 0; i < vl.values.size(); ++i)
-		{
-			oss << ',';
-			const auto &v = vl.values[i];
-			if (v.IsGauge())
-			{
-				oss << v.AsGauge();
-			}
-			else if (v.IsDerive())
-			{
-				oss << v.AsDerive();
-			}
-			else if (v.IsCounter())
-			{
-				oss << v.AsCounter();
-			}
-		}
-
-		std::string line = oss.str();
+		std::string line = m_formatter.Format(ds, vl);
 
 		if (m_useStdout)
 		{
@@ -91,7 +68,7 @@ public:
 		}
 
 		// Touch file with header if first time
-		TouchCsvFile(filePath, ds);
+		TouchCsvFile(filePath, ds, vl);
 
 		// Append data line
 		FILE *fp = fopen(filePath.c_str(), "a");
@@ -151,7 +128,9 @@ private:
 		return path;
 	}
 
-	void TouchCsvFile(const std::string &filePath, const DataSet &ds)
+	void TouchCsvFile(const std::string &filePath,
+	                  const DataSet &ds,
+	                  const ValueList &vl)
 	{
 		struct stat st = {};
 		if (stat(filePath.c_str(), &st) == 0 && S_ISREG(st.st_mode))
@@ -166,15 +145,12 @@ private:
 			return;
 		}
 
-		fprintf(fp, "epoch");
-		for (const auto &src : ds.sources)
-		{
-			fprintf(fp, ",%s", src.name.c_str());
-		}
-		fprintf(fp, "\n");
+		std::string header = CsvFormatter::Header(ds, vl);
+		fprintf(fp, "%s\n", header.c_str());
 		fclose(fp);
 	}
 
+	CsvFormatter m_formatter;
 	std::string m_dataDir;
 	bool m_useStdout = false;
 	bool m_withDate = false;
